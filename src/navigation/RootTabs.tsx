@@ -2,6 +2,8 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
+
 import HomeScreen from '../screens/HomeScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import TodosScreen from '../screens/TodosScreen';
@@ -22,7 +24,43 @@ const RootTabs = () => {
   const { t } = useTranslation();
 
   return (
-    <Tab.Navigator>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: '#2563eb',
+        tabBarInactiveTintColor: '#9ca3af',
+        tabBarStyle: {
+          backgroundColor: '#ffffff',
+          borderTopWidth: 0.5,
+          borderTopColor: '#e5e7eb',
+        },
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: string;
+
+          switch (route.name) {
+            case 'Home':
+              iconName = focused ? 'home' : 'home-outline';
+              break;
+            case 'Calendar':
+              iconName = focused ? 'calendar' : 'calendar-outline';
+              break;
+            case 'Todos':
+              iconName = focused ? 'checkmark-done' : 'checkmark-done-outline';
+              break;
+            case 'Shopping':
+              iconName = focused ? 'cart' : 'cart-outline';
+              break;
+            case 'Family':
+              iconName = focused ? 'people' : 'people-outline';
+              break;
+            default:
+              iconName = 'ellipse';
+          }
+
+          return <Ionicons name={iconName as any} size={size} color={color} />;
+        },
+      })}
+    >
       <Tab.Screen
         name="Home"
         component={HomeScreen}

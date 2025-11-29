@@ -14,8 +14,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 8
-  }
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: '#f3f4f6', // világos szürke háttér
+  },
 });
 
 export default ScreenContainer;

@@ -9,11 +9,13 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/bottom-tabs": "^7.8.7",
     "@react-navigation/native": "^7.1.22",
     "babel-preset-expo": "~54.0.0",
     "expo": "~54.0.25",
+    "expo-blur": "~15.0.7",
     "expo-localization": "^17.0.7",
     "expo-status-bar": "~3.0.8",
     "i18next": "^25.6.3",
