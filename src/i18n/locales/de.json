@@ -15,5 +15,21 @@
     "settings.language": "Sprache",
     "settings.language.hu": "Ungarisch",
     "settings.language.en": "Englisch",
-    "settings.language.de": "Deutsch"
+    "settings.language.de": "Deutsch",
+    "calendar.today": "Heute",
+    "calendar.prevDay": "Vorheriger Tag",
+    "calendar.nextDay": "Nächster Tag",
+    "calendar.newEvent": "Neuer Termin",
+    "calendar.title": "Titel",
+    "calendar.time": "Zeit (z.B. 08:30)",
+    "calendar.noEvents": "Keine Termine an diesem Tag",
+    "family.title": "Familienmitglieder",
+    "family.name": "Name",
+    "family.role": "Rolle",
+    "family.addMember": "Familienmitglied hinzufügen",
+    "family.owner": "Inhaber",
+    "family.admin": "Admin",
+    "family.member": "Mitglied",
+    "family.noMembers": "Noch keine Familienmitglieder.",
+    "family.addButton": "Hinzufügen"
   }
