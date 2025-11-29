@@ -1,5 +1,5 @@
 // src/screens/FamilyScreen.tsx
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -16,10 +16,22 @@ import { useFamilyStore, FamilyRole } from '../store/familyStore';
 
 const FamilyScreen = () => {
   const { t } = useTranslation();
-  const { members, addMember, removeMember, updateRole } = useFamilyStore();
+  const {
+    members,
+    currentUserId,
+    addMember,
+    removeMember,
+    updateRole,
+    setCurrentUser,
+  } = useFamilyStore();
 
   const [name, setName] = useState('');
   const [role, setRole] = useState<FamilyRole>('MEMBER');
+
+  const currentUser = useMemo(
+    () => members.find((m) => m.id === currentUserId) || members[0],
+    [members, currentUserId]
+  );
 
   const changeLanguage = (lng: 'hu' | 'en' | 'de') => {
     i18n.changeLanguage(lng);
@@ -38,9 +50,32 @@ const FamilyScreen = () => {
     return t('family.member');
   };
 
+  // 👉 jogosultság logika: csak OWNER vagy ADMIN tud meghívni / törölni
+  const canManageMembers =
+    currentUser && (currentUser.role === 'OWNER' || currentUser.role === 'ADMIN');
+
   return (
     <ScreenContainer>
       <Text style={styles.title}>{t('family.title')}</Text>
+
+      {/* Aktív felhasználó választás */}
+      <Text style={styles.sectionTitle}>{t('family.currentUser')}:</Text>
+      <View style={styles.currentUserRow}>
+        {members.map((m) => (
+          <TouchableOpacity
+            key={m.id}
+            style={[
+              styles.currentUserChip,
+              m.id === currentUser?.id && styles.currentUserChipActive,
+            ]}
+            onPress={() => setCurrentUser(m.id)}
+          >
+            <Text style={styles.currentUserChipText}>
+              {m.name} ({roleLabel(m.role)})
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Nyelvváltás */}
       <Text style={styles.sectionTitle}>{t('settings.language')}:</Text>
@@ -52,23 +87,30 @@ const FamilyScreen = () => {
 
       {/* Új tag hozzáadása */}
       <Text style={styles.sectionTitle}>{t('family.addMember')}</Text>
+      {!canManageMembers && (
+        <Text style={styles.infoText}>
+          {t('family.owner')} / {t('family.admin')} tud új tagot hozzáadni.
+        </Text>
+      )}
       <View style={styles.inputRow}>
         <TextInput
           style={[styles.input, { flex: 2 }]}
           placeholder={t('family.name') || 'Name'}
           value={name}
           onChangeText={setName}
+          editable={canManageMembers}
         />
       </View>
 
-      {/* Szerep választó (OWNER / ADMIN / MEMBER) */}
+      {/* Szerep választó az új taghoz */}
       <View style={styles.roleRow}>
         <TouchableOpacity
           style={[
             styles.roleButton,
             role === 'OWNER' && styles.roleButtonActive,
+            !canManageMembers && styles.roleButtonDisabled,
           ]}
-          onPress={() => setRole('OWNER')}
+          onPress={() => canManageMembers && setRole('OWNER')}
         >
           <Text style={styles.roleButtonText}>{t('family.owner')}</Text>
         </TouchableOpacity>
@@ -76,8 +118,9 @@ const FamilyScreen = () => {
           style={[
             styles.roleButton,
             role === 'ADMIN' && styles.roleButtonActive,
+            !canManageMembers && styles.roleButtonDisabled,
           ]}
-          onPress={() => setRole('ADMIN')}
+          onPress={() => canManageMembers && setRole('ADMIN')}
         >
           <Text style={styles.roleButtonText}>{t('family.admin')}</Text>
         </TouchableOpacity>
@@ -85,15 +128,20 @@ const FamilyScreen = () => {
           style={[
             styles.roleButton,
             role === 'MEMBER' && styles.roleButtonActive,
+            !canManageMembers && styles.roleButtonDisabled,
           ]}
-          onPress={() => setRole('MEMBER')}
+          onPress={() => canManageMembers && setRole('MEMBER')}
         >
           <Text style={styles.roleButtonText}>{t('family.member')}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={{ marginBottom: 8 }}>
-        <Button title={t('family.addButton')} onPress={handleAdd} />
+        <Button
+          title={t('family.addButton')}
+          onPress={handleAdd}
+          disabled={!canManageMembers}
+        />
       </View>
 
       {/* Tag lista */}
@@ -121,12 +169,14 @@ const FamilyScreen = () => {
               <Text style={styles.memberRoleText}>{roleLabel(item.role)}</Text>
 
               <View style={styles.memberRoleRow}>
+                {/* Szerep módosítás – ez is csak OWNER/ADMIN-nak engedett */}
                 <TouchableOpacity
                   style={[
                     styles.rolePill,
                     item.role === 'OWNER' && styles.rolePillActive,
+                    !canManageMembers && styles.rolePillDisabled,
                   ]}
-                  onPress={() => updateRole(item.id, 'OWNER')}
+                  onPress={() => canManageMembers && updateRole(item.id, 'OWNER')}
                 >
                   <Text style={styles.rolePillText}>{t('family.owner')}</Text>
                 </TouchableOpacity>
@@ -134,8 +184,9 @@ const FamilyScreen = () => {
                   style={[
                     styles.rolePill,
                     item.role === 'ADMIN' && styles.rolePillActive,
+                    !canManageMembers && styles.rolePillDisabled,
                   ]}
-                  onPress={() => updateRole(item.id, 'ADMIN')}
+                  onPress={() => canManageMembers && updateRole(item.id, 'ADMIN')}
                 >
                   <Text style={styles.rolePillText}>{t('family.admin')}</Text>
                 </TouchableOpacity>
@@ -143,16 +194,21 @@ const FamilyScreen = () => {
                   style={[
                     styles.rolePill,
                     item.role === 'MEMBER' && styles.rolePillActive,
+                    !canManageMembers && styles.rolePillDisabled,
                   ]}
-                  onPress={() => updateRole(item.id, 'MEMBER')}
+                  onPress={() => canManageMembers && updateRole(item.id, 'MEMBER')}
                 >
                   <Text style={styles.rolePillText}>{t('family.member')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
-            <TouchableOpacity onPress={() => removeMember(item.id)}>
-              <Text style={styles.remove}>🗑</Text>
-            </TouchableOpacity>
+
+            {/* Törlés – szintén csak OWNER/ADMIN, és ne engedjük magunkat törölni */}
+            {canManageMembers && item.id !== currentUser?.id && (
+              <TouchableOpacity onPress={() => removeMember(item.id)}>
+                <Text style={styles.remove}>🗑</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       />
@@ -171,6 +227,24 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginTop: 8,
     marginBottom: 4,
+  },
+  currentUserRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  currentUserChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  currentUserChipActive: {
+    backgroundColor: '#ddd',
+  },
+  currentUserChipText: {
+    fontSize: 12,
   },
   langRow: {
     flexDirection: 'row',
@@ -203,6 +277,9 @@ const styles = StyleSheet.create({
   },
   roleButtonActive: {
     backgroundColor: '#ddd',
+  },
+  roleButtonDisabled: {
+    opacity: 0.5,
   },
   roleButtonText: {
     fontSize: 14,
@@ -246,6 +323,9 @@ const styles = StyleSheet.create({
   rolePillActive: {
     backgroundColor: '#eee',
   },
+  rolePillDisabled: {
+    opacity: 0.5,
+  },
   rolePillText: {
     fontSize: 12,
   },
@@ -257,6 +337,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
     marginTop: 8,
+  },
+  infoText: {
+    fontSize: 12,
+    opacity: 0.7,
+    marginBottom: 4,
   },
 });
 
