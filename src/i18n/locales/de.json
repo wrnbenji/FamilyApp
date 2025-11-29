@@ -1,0 +1,19 @@
+{
+    "app.title": "FamilyApp",
+    "nav.home": "Startseite",
+    "nav.calendar": "Kalender",
+    "nav.todos": "Aufgaben",
+    "nav.shopping": "Einkaufsliste",
+    "nav.family": "Familie",
+    "home.today": "Heute",
+    "home.nextEvents": "Bevorstehende Termine",
+    "home.importantTodos": "Wichtige Aufgaben",
+    "priority.low": "Niedrig",
+    "priority.medium": "Mittel",
+    "priority.high": "Hoch",
+    "priority.urgent": "Dringend",
+    "settings.language": "Sprache",
+    "settings.language.hu": "Ungarisch",
+    "settings.language.en": "Englisch",
+    "settings.language.de": "Deutsch"
+  }

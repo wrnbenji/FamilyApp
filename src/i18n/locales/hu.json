@@ -1,0 +1,19 @@
+{
+    "app.title": "FamilyApp",
+    "nav.home": "Főoldal",
+    "nav.calendar": "Naptár",
+    "nav.todos": "Teendők",
+    "nav.shopping": "Bevásárlólista",
+    "nav.family": "Család",
+    "home.today": "Mai nap",
+    "home.nextEvents": "Következő események",
+    "home.importantTodos": "Fontos teendők",
+    "priority.low": "Alacsony",
+    "priority.medium": "Közepes",
+    "priority.high": "Magas",
+    "priority.urgent": "Sürgős",
+    "settings.language": "Nyelv",
+    "settings.language.hu": "Magyar",
+    "settings.language.en": "Angol",
+    "settings.language.de": "Német"
+  }
