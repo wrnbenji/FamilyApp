@@ -31,5 +31,7 @@
     "family.admin": "Admin",
     "family.member": "Mitglied",
     "family.noMembers": "Noch keine Familienmitglieder.",
-    "family.addButton": "Hinzufügen"
+    "family.addButton": "Hinzufügen",
+    "family.currentUser": "Aktueller Benutzer",
+    "family.loginAs": "Anmelden Als"
   }
