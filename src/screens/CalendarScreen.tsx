@@ -8,10 +8,18 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
+  Alert,
+  Platform,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import * as ExpoCalendar from 'expo-calendar';
+
 import ScreenContainer from '../components/common/ScreenContainer';
-import { useCalendarStore } from '../store/calendarStore';
+import {
+  useCalendarStore,
+  EventPriority,
+  CalendarEvent,
+} from '../store/calendarStore';
 
 // helper: Date -> 'YYYY-MM-DD'
 const formatDate = (date: Date) => {
@@ -21,7 +29,7 @@ const formatDate = (date: Date) => {
   return `${y}-${m}-${d}`;
 };
 
-// adott hónap napjait visszaadja hetekre bontva (7 oszlopos rács)
+// havi rács felépítése
 type CalendarDay = {
   date: Date;
   isCurrentMonth: boolean;
@@ -31,15 +39,12 @@ const getMonthMatrix = (monthDate: Date): CalendarDay[][] => {
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();
 
-  // hónap első napja
   const firstDayOfMonth = new Date(year, month, 1);
-  // hét kezdete (hétfő) – 0 = vasárnap, 1 = hétfő ...
   const weekday = (firstDayOfMonth.getDay() + 6) % 7; // 0 = hétfő
 
   const matrix: CalendarDay[][] = [];
   let current = new Date(year, month, 1 - weekday);
 
-  // 6 hét * 7 nap (max ennyi kell egy hónaphoz)
   for (let week = 0; week < 6; week++) {
     const row: CalendarDay[] = [];
     for (let day = 0; day < 7; day++) {
@@ -55,13 +60,31 @@ const getMonthMatrix = (monthDate: Date): CalendarDay[][] => {
   return matrix;
 };
 
-const prettyMonth = (date: Date, locale: string) => {
-  // pl. "2025. november"
-  return date.toLocaleDateString(locale, {
-    year: 'numeric',
-    month: 'long',
-  });
-};
+const prettyMonth = (date: Date, locale: string) =>
+  date.toLocaleDateString(locale, { year: 'numeric', month: 'long' });
+
+// rendszer naptár ID lekérése
+async function getDefaultCalendarId(): Promise<string | null> {
+  const { status } = await ExpoCalendar.requestCalendarPermissionsAsync();
+  if (status !== 'granted') {
+    Alert.alert(
+      'Naptár engedély szükséges',
+      'Engedélyezd a naptár elérését a beállításoknál.'
+    );
+    return null;
+  }
+
+  if (Platform.OS === 'ios') {
+    const defaultCal = await ExpoCalendar.getDefaultCalendarAsync();
+    return defaultCal.id;
+  } else {
+    const calendars = await ExpoCalendar.getCalendarsAsync(
+      ExpoCalendar.EntityTypes.EVENT
+    );
+    const primary = calendars.find((cal) => cal.isPrimary) || calendars[0];
+    return primary ? primary.id : null;
+  }
+}
 
 const CalendarScreen = () => {
   const { t, i18n } = useTranslation();
@@ -74,6 +97,7 @@ const CalendarScreen = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [title, setTitle] = useState('');
   const [time, setTime] = useState('');
+  const [priority, setPriority] = useState<EventPriority>('medium');
 
   const selectedKey = formatDate(selectedDate);
   const monthMatrix = useMemo(() => getMonthMatrix(monthDate), [monthDate]);
@@ -89,9 +113,10 @@ const CalendarScreen = () => {
 
   const handleAdd = () => {
     if (!title.trim()) return;
-    addEvent(title.trim(), selectedKey, time.trim() || undefined);
+    addEvent(title.trim(), selectedKey, time.trim() || undefined, priority);
     setTitle('');
     setTime('');
+    setPriority('medium');
   };
 
   const isSameDay = (a: Date, b: Date) =>
@@ -100,6 +125,29 @@ const CalendarScreen = () => {
     a.getDate() === b.getDate();
 
   const today = new Date();
+
+  const handleAddToDeviceCalendar = async (item: CalendarEvent) => {
+    const calendarId = await getDefaultCalendarId();
+    if (!calendarId) return;
+
+    const timeString = item.time || '09:00';
+    const [hour, minute] = timeString.split(':').map((n) => parseInt(n, 10) || 0);
+
+    const startDate = new Date(item.date);
+    startDate.setHours(hour, minute, 0, 0);
+
+    const endDate = new Date(startDate);
+    endDate.setHours(startDate.getHours() + 1);
+
+    await ExpoCalendar.createEventAsync(calendarId, {
+      title: item.title,
+      startDate,
+      endDate,
+      notes: `Created from FamilyApp (priority: ${item.priority})`,
+    });
+
+    Alert.alert('Siker', 'Esemény hozzáadva a naptárhoz.');
+  };
 
   return (
     <ScreenContainer>
@@ -182,6 +230,37 @@ const CalendarScreen = () => {
         <Button title="+" onPress={handleAdd} />
       </View>
 
+      {/* Priority választó */}
+      <View style={styles.priorityRow}>
+        <TouchableOpacity
+          style={[
+            styles.priorityPill,
+            priority === 'low' && styles.priorityPillLow,
+          ]}
+          onPress={() => setPriority('low')}
+        >
+          <Text>Kicsi</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.priorityPill,
+            priority === 'medium' && styles.priorityPillMedium,
+          ]}
+          onPress={() => setPriority('medium')}
+        >
+          <Text>Közepes</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.priorityPill,
+            priority === 'high' && styles.priorityPillHigh,
+          ]}
+          onPress={() => setPriority('high')}
+        >
+          <Text>Fontos</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Az adott nap eseményei */}
       <FlatList
         data={eventsForDay}
@@ -197,6 +276,28 @@ const CalendarScreen = () => {
               </Text>
               <Text style={styles.eventDateText}>{item.date}</Text>
             </View>
+
+            {/* priority pötty */}
+            <View style={styles.priorityDotContainer}>
+              <View
+                style={[
+                  styles.priorityDot,
+                  item.priority === 'low' && { backgroundColor: '#22c55e' },
+                  item.priority === 'medium' && { backgroundColor: '#eab308' },
+                  item.priority === 'high' && { backgroundColor: '#ef4444' },
+                ]}
+              />
+            </View>
+
+            {/* 📅 – rendszer naptárba mentés */}
+            <TouchableOpacity
+              onPress={() => handleAddToDeviceCalendar(item)}
+              style={{ marginRight: 4 }}
+            >
+              <Text style={styles.remove}>📅</Text>
+            </TouchableOpacity>
+
+            {/* 🗑 – törlés az appból */}
             <TouchableOpacity onPress={() => removeEvent(item.id)}>
               <Text style={styles.remove}>🗑</Text>
             </TouchableOpacity>
@@ -298,6 +399,31 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     backgroundColor: '#ffffff',
   },
+  priorityRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  priorityPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#d4d4d8',
+    backgroundColor: '#f4f4f5',
+  },
+  priorityPillLow: {
+    backgroundColor: '#dcfce7',
+    borderColor: '#22c55e',
+  },
+  priorityPillMedium: {
+    backgroundColor: '#fef9c3',
+    borderColor: '#eab308',
+  },
+  priorityPillHigh: {
+    backgroundColor: '#fee2e2',
+    borderColor: '#ef4444',
+  },
   emptyText: {
     fontSize: 14,
     opacity: 0.7,
@@ -314,6 +440,14 @@ const styles = StyleSheet.create({
   eventDateText: {
     fontSize: 12,
     opacity: 0.6,
+  },
+  priorityDotContainer: {
+    paddingHorizontal: 4,
+  },
+  priorityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   remove: {
     fontSize: 18,

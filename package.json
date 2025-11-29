@@ -16,6 +16,7 @@
     "babel-preset-expo": "~54.0.0",
     "expo": "~54.0.25",
     "expo-blur": "~15.0.7",
+    "expo-calendar": "~15.0.7",
     "expo-localization": "^17.0.7",
     "expo-status-bar": "~3.0.8",
     "i18next": "^25.6.3",
