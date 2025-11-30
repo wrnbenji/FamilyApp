@@ -1,37 +1,93 @@
 {
-    "app.title": "FamilyApp",
-    "nav.home": "Főoldal",
-    "nav.calendar": "Naptár",
-    "nav.todos": "Teendők",
-    "nav.shopping": "Bevásárlólista",
-    "nav.family": "Család",
-    "home.today": "Mai nap",
-    "home.nextEvents": "Következő események",
-    "home.importantTodos": "Fontos teendők",
-    "priority.low": "Alacsony",
-    "priority.medium": "Közepes",
-    "priority.high": "Magas",
-    "priority.urgent": "Sürgős",
-    "settings.language": "Nyelv",
-    "settings.language.hu": "Magyar",
-    "settings.language.en": "Angol",
-    "settings.language.de": "Német",
-    "calendar.today": "Ma",
-    "calendar.prevDay": "Előző nap",
-    "calendar.nextDay": "Következő nap",
-    "calendar.newEvent": "Új esemény",
-    "calendar.title": "Cím",
-    "calendar.time": "Idő (pl. 08:30)",
-    "calendar.noEvents": "Nincs esemény ezen a napon",
-    "family.title": "Családtagok",
-    "family.name": "Név",
-    "family.role": "Szerep",
-    "family.addMember": "Új családtag",
-    "family.owner": "Tulaj",
-    "family.admin": "Admin",
-    "family.member": "Tag",
-    "family.noMembers": "Még nincs családtag.",
-    "family.addButton": "Hozzáadás",
-      "family.currentUser": "Aktív felhasználó",
-  "family.loginAs": "Belépés mint"
+  "app.title": "FamilyApp",
+
+  "nav": {
+    "home": "Főoldal",
+    "calendar": "Naptár",
+    "todos": "Feladatok",
+    "shopping": "Bevásárlólista",
+    "family": "Család"
+  },
+
+  "home": {
+    "today": "Mai nap",
+    "upcomingEvents": "Közelgő események",
+
+    "calendar": "Naptár",
+    "calendarHint": "Mai események",
+
+    "todos": "Feladatok",
+    "importantTodos": "Fontos feladatok",
+    "noImportantTodos": "Nincs fontos feladat.",
+
+    "shopping": "Bevásárlólista",
+    "shoppingHint": "Nyitott tételek",
+    "shoppingPreview": "Bevásárló tételek",
+
+    "shoppingEmpty": "Nincs nyitott tétel.",
+
+    "quickActions": "Gyors műveletek",
+    "addTodo": "+ To-do",
+    "addShopping": "+ Bevásárló tétel",
+    "addEvent": "+ Esemény"
+  },
+
+  "calendar": {
+    "title": "Naptár",
+    "newEvent": "Új esemény",
+    "noEvents": "Nincs esemény ezen a napon.",
+    "selectedDay": "Kiválasztott nap",
+    "eventsShort": "esemény"
+  },
+
+  "todos": {
+    "title": "Feladatok",
+    "new": "Új feladat",
+    "empty": "Nincs feladat.",
+
+    "priority": {
+      "low": "Kicsi",
+      "medium": "Közepes",
+      "high": "Fontos"
+    },
+
+    "filter": {
+      "all": "Mind",
+      "active": "Aktív",
+      "done": "Kész",
+      "important": "Fontos"
+    },
+
+    "deleteAll": "Összes törlése"
+  },
+
+  "shopping": {
+    "title": "Bevásárlólista",
+    "new": "Új tétel",
+    "empty": "Nincs tétel.",
+    "list": "Lista"
+  },
+
+  "family": {
+    "title": "Család",
+    "currentUser": "Aktív felhasználó",
+    "loginAs": "Belépés mint",
+    "addMember": "Új családtag hozzáadása",
+    "name": "Név",
+    "email": "E-mail (opcionális)",
+    "add": "Hozzáadás",
+
+    "roles": {
+      "owner": "Tulajdonos",
+      "admin": "Admin",
+      "member": "Tag"
+    }
+  },
+
+  "settings": {
+    "language": "Nyelv",
+    "language.hu": "Magyar",
+    "language.en": "Angol",
+    "language.de": "Német"
   }
+}

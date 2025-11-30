@@ -1,37 +1,92 @@
 {
-    "app.title": "FamilyApp",
-    "nav.home": "Startseite",
-    "nav.calendar": "Kalender",
-    "nav.todos": "Aufgaben",
-    "nav.shopping": "Einkaufsliste",
-    "nav.family": "Familie",
-    "home.today": "Heute",
-    "home.nextEvents": "Bevorstehende Termine",
-    "home.importantTodos": "Wichtige Aufgaben",
-    "priority.low": "Niedrig",
-    "priority.medium": "Mittel",
-    "priority.high": "Hoch",
-    "priority.urgent": "Dringend",
-    "settings.language": "Sprache",
-    "settings.language.hu": "Ungarisch",
-    "settings.language.en": "Englisch",
-    "settings.language.de": "Deutsch",
-    "calendar.today": "Heute",
-    "calendar.prevDay": "Vorheriger Tag",
-    "calendar.nextDay": "Nächster Tag",
-    "calendar.newEvent": "Neuer Termin",
-    "calendar.title": "Titel",
-    "calendar.time": "Zeit (z.B. 08:30)",
-    "calendar.noEvents": "Keine Termine an diesem Tag",
-    "family.title": "Familienmitglieder",
-    "family.name": "Name",
-    "family.role": "Rolle",
-    "family.addMember": "Familienmitglied hinzufügen",
-    "family.owner": "Inhaber",
-    "family.admin": "Admin",
-    "family.member": "Mitglied",
-    "family.noMembers": "Noch keine Familienmitglieder.",
-    "family.addButton": "Hinzufügen",
-    "family.currentUser": "Aktueller Benutzer",
-    "family.loginAs": "Anmelden Als"
+  "app.title": "FamilyApp",
+
+  "nav": {
+    "home": "Startseite",
+    "calendar": "Kalender",
+    "todos": "Aufgaben",
+    "shopping": "Einkaufsliste",
+    "family": "Familie"
+  },
+
+  "home": {
+    "today": "Heute",
+    "upcomingEvents": "Bevorstehende Termine",
+
+    "calendar": "Kalender",
+    "calendarHint": "Heutige Termine",
+
+    "todos": "Aufgaben",
+    "importantTodos": "Wichtige Aufgaben",
+    "noImportantTodos": "Keine wichtigen Aufgaben.",
+
+    "shopping": "Einkaufsliste",
+    "shoppingHint": "Offene Artikel",
+    "shoppingPreview": "Einkaufsartikel",
+    "shoppingEmpty": "Keine offenen Artikel.",
+
+    "quickActions": "Schnellaktionen",
+    "addTodo": "+ Aufgabe",
+    "addShopping": "+ Einkaufsartikel",
+    "addEvent": "+ Termin"
+  },
+
+  "calendar": {
+    "title": "Kalender",
+    "newEvent": "Neuer Termin",
+    "noEvents": "Keine Termine an diesem Tag.",
+    "selectedDay": "Ausgewählter Tag",
+    "eventsShort": "Termine"
+  },
+
+  "todos": {
+    "title": "Aufgaben",
+    "new": "Neue Aufgabe",
+    "empty": "Keine Aufgaben.",
+
+    "priority": {
+      "low": "Niedrig",
+      "medium": "Mittel",
+      "high": "Hoch"
+    },
+
+    "filter": {
+      "all": "Alle",
+      "active": "Aktiv",
+      "done": "Erledigt",
+      "important": "Wichtig"
+    },
+
+    "deleteAll": "Alle löschen"
+  },
+
+  "shopping": {
+    "title": "Einkaufsliste",
+    "new": "Neuer Artikel",
+    "empty": "Keine Artikel.",
+    "list": "Liste"
+  },
+
+  "family": {
+    "title": "Familienmitglieder",
+    "currentUser": "Aktueller Benutzer",
+    "loginAs": "Einloggen als",
+    "addMember": "Familienmitglied hinzufügen",
+    "name": "Name",
+    "email": "E-Mail (optional)",
+    "add": "Hinzufügen",
+
+    "roles": {
+      "owner": "Inhaber",
+      "admin": "Admin",
+      "member": "Mitglied"
+    }
+  },
+
+  "settings": {
+    "language": "Sprache",
+    "language.hu": "Ungarisch",
+    "language.en": "Englisch",
+    "language.de": "Deutsch"
   }
+} 
