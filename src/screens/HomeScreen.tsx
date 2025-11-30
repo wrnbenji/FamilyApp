@@ -36,6 +36,21 @@ const HomeScreen = () => {
 
   const todayKey = formatDate(new Date());
 
+  const importantTodos = useMemo(
+    () => todos.filter((t) => !t.done && t.priority === 'high'),
+    [todos]
+  );
+
+  // bevásárlólista: használjuk az első (fő) listát előnézethez
+  const mainShoppingList = lists[0];
+  const openShoppingItems = useMemo(
+    () =>
+      mainShoppingList
+        ? mainShoppingList.items.filter((item) => !item.done)
+        : [],
+    [mainShoppingList]
+  );
+
   const openTodosCount = useMemo(
     () => todos.filter((t) => !t.done).length,
     [todos]
@@ -71,9 +86,9 @@ const HomeScreen = () => {
 
           <View style={styles.card}>
             <Text style={styles.cardLabel}>{t('nav.todos')}</Text>
-            <Text style={styles.cardNumber}>{openTodosCount}</Text>
+            <Text style={styles.cardNumber}>{importantTodos.length}</Text>
             <Text style={styles.cardHint}>
-              {t('home.importantTodos') || 'Offene Aufgaben'}
+              {t('home.importantTodos') || 'Fontos feladatok'}
             </Text>
           </View>
         </View>
@@ -82,9 +97,44 @@ const HomeScreen = () => {
           <View style={styles.cardWide}>
             <Text style={styles.cardLabel}>{t('nav.shopping')}</Text>
             <Text style={styles.cardNumber}>{openShoppingCount}</Text>
-            <Text style={styles.cardHint}>Még beszerzendő tétel</Text>
+            <Text style={styles.cardHint}>
+              {t('home.shoppingHint') || 'Nyitott bevásárló tételek'}
+            </Text>
           </View>
         </View>
+
+        {/* Rövid lista: fontos feladatok */}
+        <Text style={styles.sectionTitle}>
+          {t('home.importantTodos') || 'Fontos feladatok'}
+        </Text>
+        {importantTodos.length === 0 ? (
+          <Text style={styles.emptyText}>
+            {t('home.noImportantTodos') || 'Nincs fontos feladat.'}
+          </Text>
+        ) : (
+          importantTodos.slice(0, 3).map((todo) => (
+            <Text key={todo.id} style={styles.previewItem}>
+              • {todo.title}
+            </Text>
+          ))
+        )}
+
+        {/* Rövid lista: bevásárlólista (fő lista előnézet) */}
+        <Text style={styles.sectionTitle}>
+          {t('home.shoppingPreview') || 'Bevásárlólista'}
+        </Text>
+        {openShoppingItems.length === 0 ? (
+          <Text style={styles.emptyText}>
+            {t('home.shopping.empty') || 'Nincs nyitott tétel.'}
+          </Text>
+        ) : (
+          openShoppingItems.slice(0, 3).map((item) => (
+            <Text key={item.id} style={styles.previewItem}>
+              • {item.name}
+              {item.quantity ? ` (${item.quantity})` : ''}
+            </Text>
+          ))
+        )}
 
         <Text style={styles.sectionTitle}>Gyors műveletek</Text>
         <View style={styles.quickActionsRow}>
@@ -172,6 +222,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 12,
     marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginBottom: 4,
+  },
+  previewItem: {
+    fontSize: 14,
+    marginBottom: 2,
   },
   quickActionsRow: {
     flexDirection: 'row',

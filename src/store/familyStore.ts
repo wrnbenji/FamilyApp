@@ -3,66 +3,75 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type FamilyRole = 'OWNER' | 'ADMIN' | 'MEMBER';
+export type FamilyRole = 'owner' | 'admin' | 'member';
 
 export type FamilyMember = {
   id: string;
   name: string;
+  email?: string;
   role: FamilyRole;
-  color?: string;
 };
 
 type FamilyState = {
   members: FamilyMember[];
   currentUserId: string | null;
-  addMember: (name: string, role: FamilyRole) => void;
+
+  addMember: (name: string, email?: string) => void;
   removeMember: (id: string) => void;
-  updateRole: (id: string, role: FamilyRole) => void;
-  setCurrentUser: (id: string) => void;
+  setRole: (id: string, role: FamilyRole) => void;
 };
 
 export const useFamilyStore = create<FamilyState>()(
   persist<FamilyState>(
-    (set) => ({
-      // kezdeti minta család + aktív user az Owner
+    (set, get) => ({
+      // induláskor legyen egy owner (Te)
       members: [
-        { id: '1', name: 'Owner', role: 'OWNER', color: '#ff6b6b' },
-        { id: '2', name: 'Admin', role: 'ADMIN', color: '#1dd1a1' },
-        { id: '3', name: 'User', role: 'MEMBER', color: '#54a0ff' },
+        {
+          id: 'owner-1',
+          name: 'Te',
+          role: 'owner',
+        },
       ],
-      currentUserId: '1',
+      currentUserId: 'owner-1',
 
-      addMember: (name, role) =>
+      addMember: (name, email) => {
+        const newMember: FamilyMember = {
+          id: Date.now().toString(),
+          name,
+          email,
+          role: 'member',
+        };
         set((state) => ({
-          members: [
-            ...state.members,
-            {
-              id: Date.now().toString(),
-              name,
-              role,
-            },
-          ],
-        })),
+          members: [...state.members, newMember],
+        }));
+      },
 
-      removeMember: (id) =>
-        set((state) => ({
+      removeMember: (id) => {
+        const state = get();
+        const member = state.members.find((m) => m.id === id);
+        if (!member) return;
+        // ownert nem töröljük
+        if (member.role === 'owner') return;
+
+        set({
           members: state.members.filter((m) => m.id !== id),
-          // ha épp magunkat törölnénk, léptessük át az aktuális usert null-ra
-          currentUserId:
-            state.currentUserId === id ? null : state.currentUserId,
-        })),
+        });
+      },
 
-      updateRole: (id, role) =>
-        set((state) => ({
+      setRole: (id, role) => {
+        const state = get();
+        const member = state.members.find((m) => m.id === id);
+        if (!member) return;
+        // owner szerepet nem veszünk el, és nem adunk oda másnak
+        if (member.role === 'owner' && role !== 'owner') return;
+        if (role === 'owner') return;
+
+        set({
           members: state.members.map((m) =>
             m.id === id ? { ...m, role } : m
           ),
-        })),
-
-      setCurrentUser: (id) =>
-        set(() => ({
-          currentUserId: id,
-        })),
+        });
+      },
     }),
     {
       name: 'familyapp-family',

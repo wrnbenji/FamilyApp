@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import TodosScreen from '../screens/TodosScreen';
-import ShoppingScreen from '../screens/ShoppingScreen';
+import ShoppingListScreen from '../screens/ShoppingListScreen';
 import FamilyScreen from '../screens/FamilyScreen';
 
 export type RootTabParamList = {
@@ -78,7 +78,7 @@ const RootTabs = () => {
       />
       <Tab.Screen
         name="Shopping"
-        component={ShoppingScreen}
+        component={ShoppingListScreen}
         options={{ title: t('nav.shopping') }}
       />
       <Tab.Screen

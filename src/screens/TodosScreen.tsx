@@ -16,13 +16,22 @@ import { useTodoStore } from '../store/todoStore';
 const TodosScreen = () => {
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [filter, setFilter] = useState<'all' | 'open' | 'done' | 'important'>('all');
   const { todos, addTodo, toggleTodo, removeTodo, clearAll } = useTodoStore();
 
   const handleAdd = () => {
     if (!title.trim()) return;
-    addTodo(title.trim(), 'medium');
+    addTodo(title.trim(), priority);
     setTitle('');
   };
+
+  const filteredTodos = todos.filter((todo) => {
+    if (filter === 'open') return !todo.done;
+    if (filter === 'done') return todo.done;
+    if (filter === 'important') return todo.priority === 'high';
+    return true; // 'all'
+  });
 
   return (
     <ScreenContainer>
@@ -38,12 +47,83 @@ const TodosScreen = () => {
         <Button title="+" onPress={handleAdd} />
       </View>
 
+      {/* Prioritás választó */}
+      <View style={styles.priorityRow}>
+        <TouchableOpacity
+          style={[
+            styles.priorityPill,
+            priority === 'low' && styles.priorityPillLow,
+          ]}
+          onPress={() => setPriority('low')}
+        >
+          <Text>Kicsi</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.priorityPill,
+            priority === 'medium' && styles.priorityPillMedium,
+          ]}
+          onPress={() => setPriority('medium')}
+        >
+          <Text>Közepes</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.priorityPill,
+            priority === 'high' && styles.priorityPillHigh,
+          ]}
+          onPress={() => setPriority('high')}
+        >
+          <Text>Fontos</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Szűrők */}
+      <View style={styles.filterRow}>
+        <TouchableOpacity
+          style={[
+            styles.filterPill,
+            filter === 'all' && styles.filterPillActive,
+          ]}
+          onPress={() => setFilter('all')}
+        >
+          <Text>Mind</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterPill,
+            filter === 'open' && styles.filterPillActive,
+          ]}
+          onPress={() => setFilter('open')}
+        >
+          <Text>Aktív</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterPill,
+            filter === 'done' && styles.filterPillActive,
+          ]}
+          onPress={() => setFilter('done')}
+        >
+          <Text>Kész</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterPill,
+            filter === 'important' && styles.filterPillActive,
+          ]}
+          onPress={() => setFilter('important')}
+        >
+          <Text>Fontos</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={{ marginBottom: 8 }}>
         <Button title="Összes törlése" onPress={clearAll} />
       </View>
 
       <FlatList
-        data={todos}
+        data={filteredTodos}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingVertical: 8 }}
         renderItem={({ item }) => (
@@ -88,6 +168,48 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
+  },
+  priorityRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  priorityPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#d4d4d8',
+    backgroundColor: '#f4f4f5',
+  },
+  priorityPillLow: {
+    backgroundColor: '#dcfce7',
+    borderColor: '#22c55e',
+  },
+  priorityPillMedium: {
+    backgroundColor: '#fef9c3',
+    borderColor: '#eab308',
+  },
+  priorityPillHigh: {
+    backgroundColor: '#fee2e2',
+    borderColor: '#ef4444',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  filterPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#f9fafb',
+  },
+  filterPillActive: {
+    backgroundColor: '#e0f2fe',
+    borderColor: '#38bdf8',
   },
   todoRow: {
     flexDirection: 'row',
