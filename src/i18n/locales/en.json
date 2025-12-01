@@ -1,5 +1,7 @@
 {
-  "app.title": "FamilyApp",
+  "app": {
+    "title": "FamilyApp"
+  },
 
   "nav": {
     "home": "Home",
@@ -25,7 +27,7 @@
     "shoppingPreview": "Shopping items",
     "shoppingEmpty": "No open items.",
 
-    "quickActions": "Quick actions",
+    "quickActions": "Quick Actions",
     "addTodo": "+ To-do",
     "addShopping": "+ Shopping item",
     "addEvent": "+ Event"
@@ -33,10 +35,19 @@
 
   "calendar": {
     "title": "Calendar",
-    "newEvent": "New event",
-    "noEvents": "No events on this day.",
+    "newEvent": "New Event",
     "selectedDay": "Selected day",
-    "eventsShort": "events"
+    "titlePlaceholder": "Event title",
+    "timePlaceholder": "Time (e.g. 08:30 or 08:30-09:30)",
+    "addButton": "Add",
+    "eventsForDay": "Events for this day",
+    "noEvents": "No events on this day."
+  },
+
+  "priority": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High"
   },
 
   "todos": {
@@ -70,8 +81,8 @@
   "family": {
     "title": "Family",
     "currentUser": "Current user",
-    "loginAs": "Log in as",
-    "addMember": "Add family member",
+    "loginAs": "Login as",
+    "addMember": "Add new family member",
     "name": "Name",
     "email": "Email (optional)",
     "add": "Add",

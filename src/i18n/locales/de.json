@@ -1,5 +1,7 @@
 {
-  "app.title": "FamilyApp",
+  "app": {
+    "title": "FamilyApp"
+  },
 
   "nav": {
     "home": "Startseite",
@@ -34,9 +36,18 @@
   "calendar": {
     "title": "Kalender",
     "newEvent": "Neuer Termin",
-    "noEvents": "Keine Termine an diesem Tag.",
     "selectedDay": "Ausgewählter Tag",
-    "eventsShort": "Termine"
+    "titlePlaceholder": "Titel des Termins",
+    "timePlaceholder": "Zeit (z. B. 08:30 oder 08:30-09:30)",
+    "addButton": "Hinzufügen",
+    "eventsForDay": "Termine an diesem Tag",
+    "noEvents": "Keine Termine an diesem Tag."
+  },
+
+  "priority": {
+    "low": "Niedrig",
+    "medium": "Mittel",
+    "high": "Hoch"
   },
 
   "todos": {
@@ -47,7 +58,7 @@
     "priority": {
       "low": "Niedrig",
       "medium": "Mittel",
-      "high": "Hoch"
+      "high": "Wichtig"
     },
 
     "filter": {
@@ -68,16 +79,16 @@
   },
 
   "family": {
-    "title": "Familienmitglieder",
+    "title": "Familie",
     "currentUser": "Aktueller Benutzer",
-    "loginAs": "Einloggen als",
-    "addMember": "Familienmitglied hinzufügen",
+    "loginAs": "Anmelden als",
+    "addMember": "Neues Familienmitglied hinzufügen",
     "name": "Name",
     "email": "E-Mail (optional)",
     "add": "Hinzufügen",
 
     "roles": {
-      "owner": "Inhaber",
+      "owner": "Besitzer",
       "admin": "Admin",
       "member": "Mitglied"
     }
@@ -89,4 +100,4 @@
     "language.en": "Englisch",
     "language.de": "Deutsch"
   }
-} 
+}

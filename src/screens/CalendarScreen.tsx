@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// src/screens/CalendarScreen.tsx
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,8 +7,10 @@ import {
   TouchableOpacity,
   FlatList,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Calendar } from 'react-native-calendars';
 
 import ScreenContainer from '../components/common/ScreenContainer';
 import {
@@ -20,21 +23,53 @@ const CalendarScreen = () => {
   const { t } = useTranslation();
   const { events, addEvent, removeEvent } = useCalendarStore();
 
+  // 📅 mai nap YYYY-MM-DD
+  const today = new Date().toISOString().slice(0, 10);
+  const [selectedDate, setSelectedDate] = useState<string>(today);
+
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState(''); // 'YYYY-MM-DD'
-  const [time, setTime] = useState(''); // 'HH:MM' vagy 'HH:MM-HH:MM'
+  const [time, setTime] = useState('');
   const [priority, setPriority] = useState<EventPriority>('medium');
 
+  // 🔹 az adott nap eseményei
+  const eventsForDay = useMemo(
+    () => events.filter((e) => e.date === selectedDate),
+    [events, selectedDate]
+  );
+
+  // 🔹 jelölések a naptárban (pont azokon a napokon, ahol van esemény)
+  const markedDates = useMemo(() => {
+    const result: {
+      [date: string]: { marked?: boolean; selected?: boolean; selectedColor?: string };
+    } = {};
+
+    events.forEach((e) => {
+      result[e.date] = {
+        ...(result[e.date] || {}),
+        marked: true,
+      };
+    });
+
+    result[selectedDate] = {
+      ...(result[selectedDate] || {}),
+      selected: true,
+      selectedColor: '#2563eb',
+    };
+
+    return result;
+  }, [events, selectedDate]);
+
   const handleAddEvent = () => {
-    if (!title.trim() || !date.trim()) {
+    if (!title.trim()) {
       return;
     }
-    addEvent(title.trim(), date.trim(), time.trim() || undefined, priority);
+    // dátum: a kiválasztott nap
+    addEvent(title.trim(), selectedDate, time.trim() || undefined, priority);
     setTitle('');
     setTime('');
   };
 
-  const renderItem = ({ item }: { item: CalendarEvent }) => {
+  const renderEventItem = ({ item }: { item: CalendarEvent }) => {
     const color =
       item.priority === 'high'
         ? '#dc2626'
@@ -48,8 +83,7 @@ const CalendarScreen = () => {
         <View style={{ flex: 1 }}>
           <Text style={styles.eventTitle}>{item.title}</Text>
           <Text style={styles.eventMeta}>
-            {item.date}
-            {item.time ? ` • ${item.time}` : ''}
+            {item.time || t('calendar.selectedDay') || ''}
           </Text>
         </View>
         <TouchableOpacity
@@ -66,9 +100,37 @@ const CalendarScreen = () => {
     <ScreenContainer>
       <Text style={styles.screenTitle}>{t('calendar.title') || 'Kalender'}</Text>
 
+      {/* 🗓 Felső hónapnézet naptár */}
+      <View style={styles.calendarWrapper}>
+        <Calendar
+          current={selectedDate}
+          onDayPress={(day) => setSelectedDate(day.dateString)}
+          markedDates={markedDates}
+          firstDay={1}
+          theme={{
+            selectedDayBackgroundColor: '#2563eb',
+            selectedDayTextColor: '#ffffff',
+            todayTextColor: '#2563eb',
+            arrowColor: '#2563eb',
+            dotColor: '#2563eb',
+            textDayFontFamily: Platform.OS === 'ios' ? undefined : 'System',
+            textMonthFontFamily: Platform.OS === 'ios' ? undefined : 'System',
+            textDayHeaderFontFamily:
+              Platform.OS === 'ios' ? undefined : 'System',
+          }}
+        />
+      </View>
+
+      {/* Új esemény kártya */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>
           {t('calendar.newEvent') || 'Neuer Termin'}
+        </Text>
+
+        {/* csak kijelzés, dátumot a naptárból választjuk */}
+        <Text style={styles.dateLabel}>
+          {t('calendar.selectedDay') || 'Ausgewähltes Datum'}:{' '}
+          <Text style={styles.dateValue}>{selectedDate}</Text>
         </Text>
 
         <TextInput
@@ -80,14 +142,9 @@ const CalendarScreen = () => {
 
         <TextInput
           style={styles.input}
-          placeholder={t('calendar.datePlaceholder') || 'Datum (YYYY-MM-DD)'}
-          value={date}
-          onChangeText={setDate}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder={t('calendar.timePlaceholder') || 'Zeit (z.B. 08:30 oder 08:30-09:30)'}
+          placeholder={
+            t('calendar.timePlaceholder') || 'Zeit (z.B. 08:30 oder 08:30-09:30)'
+          }
           value={time}
           onChangeText={setTime}
         />
@@ -120,20 +177,21 @@ const CalendarScreen = () => {
         </TouchableOpacity>
       </View>
 
+      {/* Az adott nap eseményei */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>
-          {t('calendar.eventsForDay') || 'Termine'}
+          {t('calendar.eventsForDay') || 'Termine an diesem Tag'}
         </Text>
 
-        {events.length === 0 ? (
+        {eventsForDay.length === 0 ? (
           <Text style={styles.emptyText}>
-            {t('calendar.noEvents') || 'Keine Termine.'}
+            {t('calendar.noEvents') || 'Keine Termine an diesem Tag.'}
           </Text>
         ) : (
           <FlatList
-            data={events}
+            data={eventsForDay}
             keyExtractor={(item) => item.id}
-            renderItem={renderItem}
+            renderItem={renderEventItem}
           />
         )}
       </View>
@@ -176,16 +234,53 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginBottom: 12,
   },
+  calendarWrapper: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
   card: {
     borderRadius: 16,
     padding: 12,
     backgroundColor: '#ffffff',
     marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
+  },
+  dateLabel: {
+    fontSize: 13,
+    marginBottom: 4,
+    color: '#6b7280',
+  },
+  dateValue: {
+    fontWeight: '600',
+    color: '#111827',
   },
   input: {
     borderWidth: 1,

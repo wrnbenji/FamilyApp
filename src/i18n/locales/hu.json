@@ -1,5 +1,7 @@
 {
-  "app.title": "FamilyApp",
+  "app": {
+    "title": "FamilyApp"
+  },
 
   "nav": {
     "home": "Főoldal",
@@ -23,7 +25,6 @@
     "shopping": "Bevásárlólista",
     "shoppingHint": "Nyitott tételek",
     "shoppingPreview": "Bevásárló tételek",
-
     "shoppingEmpty": "Nincs nyitott tétel.",
 
     "quickActions": "Gyors műveletek",
@@ -35,9 +36,18 @@
   "calendar": {
     "title": "Naptár",
     "newEvent": "Új esemény",
-    "noEvents": "Nincs esemény ezen a napon.",
     "selectedDay": "Kiválasztott nap",
-    "eventsShort": "esemény"
+    "titlePlaceholder": "Esemény címe",
+    "timePlaceholder": "Idő (pl. 08:30 vagy 08:30-09:30)",
+    "addButton": "Hozzáadás",
+    "eventsForDay": "Események ezen a napon",
+    "noEvents": "Nincs esemény ezen a napon."
+  },
+
+  "priority": {
+    "low": "Alacsony",
+    "medium": "Közepes",
+    "high": "Magas"
   },
 
   "todos": {
