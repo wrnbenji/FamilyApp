@@ -1,214 +1,223 @@
-// src/screens/FamilyScreen.tsx
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
-  Button,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
+  FlatList,
+  Platform,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+
 import ScreenContainer from '../components/common/ScreenContainer';
-import i18n from '../i18n';
-import { useFamilyStore, FamilyRole } from '../store/familyStore';
+import {
+  useFamilyStore,
+  FamilyMember,
+  FamilyRole,
+} from '../store/familyStore';
 
 const FamilyScreen = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     members,
     currentUserId,
     addMember,
     removeMember,
-    updateRole,
+    setRole,
     setCurrentUser,
   } = useFamilyStore();
 
-  const [name, setName] = useState('');
-  const [role, setRole] = useState<FamilyRole>('MEMBER');
+  const [newName, setNewName] = useState('');
+  const [newRole, setNewRole] = useState<FamilyRole>('member');
 
-  const currentUser = useMemo(
-    () => members.find((m) => m.id === currentUserId) || members[0],
-    [members, currentUserId]
-  );
+  const currentUser = members.find((m) => m.id === currentUserId);
+
+  const handleAdd = () => {
+    if (!newName.trim()) return;
+    addMember(newName, newRole);
+    setNewName('');
+    setNewRole('member');
+  };
+
+  const renderRoleBadge = (member: FamilyMember) => {
+    const role = member.role;
+    const label =
+      role === 'owner'
+        ? t('family.roles.owner') || 'Owner'
+        : role === 'admin'
+        ? t('family.roles.admin') || 'Admin'
+        : t('family.roles.member') || 'User';
+
+    const style =
+      role === 'owner'
+        ? styles.roleOwner
+        : role === 'admin'
+        ? styles.roleAdmin
+        : styles.roleMember;
+
+    return (
+      <View style={[styles.roleBadge, style]}>
+        <Text style={styles.roleBadgeText}>{label}</Text>
+      </View>
+    );
+  };
 
   const changeLanguage = (lng: 'hu' | 'en' | 'de') => {
     i18n.changeLanguage(lng);
   };
 
-  const handleAdd = () => {
-    if (!name.trim()) return;
-    addMember(name.trim(), role);
-    setName('');
-    setRole('MEMBER');
-  };
-
-  const roleLabel = (r: FamilyRole) => {
-    if (r === 'OWNER') return t('family.owner');
-    if (r === 'ADMIN') return t('family.admin');
-    return t('family.member');
-  };
-
-  // 👉 jogosultság logika: csak OWNER vagy ADMIN tud meghívni / törölni
-  const canManageMembers =
-    currentUser && (currentUser.role === 'OWNER' || currentUser.role === 'ADMIN');
-
   return (
     <ScreenContainer>
-      <Text style={styles.title}>{t('family.title')}</Text>
+      <Text style={styles.title}>
+        {t('family.title') || 'Familienmitglieder'}
+      </Text>
 
-      {/* Aktív felhasználó választás */}
-      <Text style={styles.sectionTitle}>{t('family.currentUser')}:</Text>
-      <View style={styles.currentUserRow}>
-        {members.map((m) => (
-          <TouchableOpacity
-            key={m.id}
-            style={[
-              styles.currentUserChip,
-              m.id === currentUser?.id && styles.currentUserChipActive,
-            ]}
-            onPress={() => setCurrentUser(m.id)}
-          >
-            <Text style={styles.currentUserChipText}>
-              {m.name} ({roleLabel(m.role)})
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Nyelvváltás */}
-      <Text style={styles.sectionTitle}>{t('settings.language')}:</Text>
-      <View style={styles.langRow}>
-        <Button title={t('settings.language.hu')} onPress={() => changeLanguage('hu')} />
-        <Button title={t('settings.language.en')} onPress={() => changeLanguage('en')} />
-        <Button title={t('settings.language.de')} onPress={() => changeLanguage('de')} />
-      </View>
-
-      {/* Új tag hozzáadása */}
-      <Text style={styles.sectionTitle}>{t('family.addMember')}</Text>
-      {!canManageMembers && (
-        <Text style={styles.infoText}>
-          {t('family.owner')} / {t('family.admin')} tud új tagot hozzáadni.
+      {/* AKTUÁLIS FELHASZNÁLÓ (pseudo-login) */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>
+          {t('family.currentUser') || 'Aktueller Benutzer'}
         </Text>
-      )}
-      <View style={styles.inputRow}>
+
+        <View style={styles.currentUserRow}>
+          {members.map((m) => (
+            <TouchableOpacity
+              key={m.id}
+              style={[
+                styles.currentUserChip,
+                m.id === currentUserId && styles.currentUserChipActive,
+              ]}
+              onPress={() => setCurrentUser(m.id)}
+            >
+              <Text
+                style={[
+                  styles.currentUserText,
+                  m.id === currentUserId && styles.currentUserTextActive,
+                ]}
+              >
+                {m.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {currentUser && (
+          <Text style={styles.currentUserInfo}>
+            {t('family.loginAs') || 'Bejelentkezve mint'}:{' '}
+            <Text style={{ fontWeight: '600' }}>{currentUser.name}</Text>
+          </Text>
+        )}
+      </View>
+
+      {/* NYELVVÁLASZTÓ */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>
+          {t('settings.language') || 'Sprache'}
+        </Text>
+        <View style={styles.languageRow}>
+          <LangButton
+            label="MAGYAR"
+            active={i18n.language.startsWith('hu')}
+            onPress={() => changeLanguage('hu')}
+          />
+          <LangButton
+            label="ENGLISH"
+            active={i18n.language.startsWith('en')}
+            onPress={() => changeLanguage('en')}
+          />
+          <LangButton
+            label="DEUTSCH"
+            active={i18n.language.startsWith('de')}
+            onPress={() => changeLanguage('de')}
+          />
+        </View>
+      </View>
+
+      {/* ÚJ CSALÁDTAG HOZZÁADÁSA */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>
+          {t('family.addMember') || 'Familienmitglied hinzufügen'}
+        </Text>
         <TextInput
-          style={[styles.input, { flex: 2 }]}
+          style={styles.input}
           placeholder={t('family.name') || 'Name'}
-          value={name}
-          onChangeText={setName}
-          editable={canManageMembers}
+          value={newName}
+          onChangeText={setNewName}
         />
-      </View>
 
-      {/* Szerep választó az új taghoz */}
-      <View style={styles.roleRow}>
-        <TouchableOpacity
-          style={[
-            styles.roleButton,
-            role === 'OWNER' && styles.roleButtonActive,
-            !canManageMembers && styles.roleButtonDisabled,
-          ]}
-          onPress={() => canManageMembers && setRole('OWNER')}
-        >
-          <Text style={styles.roleButtonText}>{t('family.owner')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.roleButton,
-            role === 'ADMIN' && styles.roleButtonActive,
-            !canManageMembers && styles.roleButtonDisabled,
-          ]}
-          onPress={() => canManageMembers && setRole('ADMIN')}
-        >
-          <Text style={styles.roleButtonText}>{t('family.admin')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.roleButton,
-            role === 'MEMBER' && styles.roleButtonActive,
-            !canManageMembers && styles.roleButtonDisabled,
-          ]}
-          onPress={() => canManageMembers && setRole('MEMBER')}
-        >
-          <Text style={styles.roleButtonText}>{t('family.member')}</Text>
+        <View style={styles.roleSelectRow}>
+          <RoleChip
+            label={t('family.roles.owner') || 'Owner'}
+            active={newRole === 'owner'}
+            onPress={() => setNewRole('owner')}
+          />
+          <RoleChip
+            label={t('family.roles.admin') || 'Admin'}
+            active={newRole === 'admin'}
+            onPress={() => setNewRole('admin')}
+          />
+          <RoleChip
+            label={t('family.roles.member') || 'User'}
+            active={newRole === 'member'}
+            onPress={() => setNewRole('member')}
+          />
+        </View>
+
+        <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
+          <Text style={styles.addButtonText}>
+            {t('family.add') || 'Hinzufügen'}
+          </Text>
         </TouchableOpacity>
       </View>
 
-      <View style={{ marginBottom: 8 }}>
-        <Button
-          title={t('family.addButton')}
-          onPress={handleAdd}
-          disabled={!canManageMembers}
-        />
-      </View>
-
-      {/* Tag lista */}
+      {/* TAGLISTA */}
       <FlatList
         data={members}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(m) => m.id}
         contentContainerStyle={{ paddingVertical: 8 }}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>{t('family.noMembers')}</Text>
-        }
         renderItem={({ item }) => (
           <View style={styles.memberRow}>
-            <View
-              style={[
-                styles.avatar,
-                { backgroundColor: item.color || '#ccc' },
-              ]}
-            >
+            {/* kis „avatar” kör */}
+            <View style={styles.avatar}>
               <Text style={styles.avatarText}>
                 {item.name.charAt(0).toUpperCase()}
               </Text>
             </View>
+
             <View style={{ flex: 1 }}>
               <Text style={styles.memberName}>{item.name}</Text>
-              <Text style={styles.memberRoleText}>{roleLabel(item.role)}</Text>
-
-              <View style={styles.memberRoleRow}>
-                {/* Szerep módosítás – ez is csak OWNER/ADMIN-nak engedett */}
-                <TouchableOpacity
-                  style={[
-                    styles.rolePill,
-                    item.role === 'OWNER' && styles.rolePillActive,
-                    !canManageMembers && styles.rolePillDisabled,
-                  ]}
-                  onPress={() => canManageMembers && updateRole(item.id, 'OWNER')}
-                >
-                  <Text style={styles.rolePillText}>{t('family.owner')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.rolePill,
-                    item.role === 'ADMIN' && styles.rolePillActive,
-                    !canManageMembers && styles.rolePillDisabled,
-                  ]}
-                  onPress={() => canManageMembers && updateRole(item.id, 'ADMIN')}
-                >
-                  <Text style={styles.rolePillText}>{t('family.admin')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.rolePill,
-                    item.role === 'MEMBER' && styles.rolePillActive,
-                    !canManageMembers && styles.rolePillDisabled,
-                  ]}
-                  onPress={() => canManageMembers && updateRole(item.id, 'MEMBER')}
-                >
-                  <Text style={styles.rolePillText}>{t('family.member')}</Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.memberRoleText}>
+                {item.role === 'owner'
+                  ? t('family.roles.owner') || 'Owner'
+                  : item.role === 'admin'
+                  ? t('family.roles.admin') || 'Admin'
+                  : t('family.roles.member') || 'User'}
+              </Text>
             </View>
 
-            {/* Törlés – szintén csak OWNER/ADMIN, és ne engedjük magunkat törölni */}
-            {canManageMembers && item.id !== currentUser?.id && (
-              <TouchableOpacity onPress={() => removeMember(item.id)}>
-                <Text style={styles.remove}>🗑</Text>
-              </TouchableOpacity>
-            )}
+            {/* szerep-váltó gombok */}
+            <View style={styles.memberRoleButtons}>
+              <SmallRoleButton
+                label={t('family.roles.owner') || 'Owner'}
+                active={item.role === 'owner'}
+                onPress={() => setRole(item.id, 'owner')}
+              />
+              <SmallRoleButton
+                label={t('family.roles.admin') || 'Admin'}
+                active={item.role === 'admin'}
+                onPress={() => setRole(item.id, 'admin')}
+              />
+              <SmallRoleButton
+                label={t('family.roles.member') || 'User'}
+                active={item.role === 'member'}
+                onPress={() => setRole(item.id, 'member')}
+              />
+            </View>
+
+            {/* törlés (owner védve a store-ban) */}
+            <TouchableOpacity onPress={() => removeMember(item.id)}>
+              <Text style={styles.trash}>🗑️</Text>
+            </TouchableOpacity>
           </View>
         )}
       />
@@ -216,73 +225,184 @@ const FamilyScreen = () => {
   );
 };
 
+type LangProps = {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+};
+
+const LangButton = ({ label, active, onPress }: LangProps) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={[
+      styles.langButton,
+      active && styles.langButtonActive,
+    ]}
+  >
+    <Text
+      style={[
+        styles.langButtonText,
+        active && styles.langButtonTextActive,
+      ]}
+    >
+      {label}
+    </Text>
+  </TouchableOpacity>
+);
+
+type RoleChipProps = {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+};
+
+const RoleChip = ({ label, active, onPress }: RoleChipProps) => (
+  <TouchableOpacity
+    style={[styles.roleChip, active && styles.roleChipActive]}
+    onPress={onPress}
+  >
+    <Text
+      style={[
+        styles.roleChipText,
+        active && styles.roleChipTextActive,
+      ]}
+    >
+      {label}
+    </Text>
+  </TouchableOpacity>
+);
+
+type SmallRoleProps = {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+};
+
+const SmallRoleButton = ({ label, active, onPress }: SmallRoleProps) => (
+  <TouchableOpacity
+    style={[
+      styles.smallRoleButton,
+      active && styles.smallRoleButtonActive,
+    ]}
+    onPress={onPress}
+  >
+    <Text
+      style={[
+        styles.smallRoleText,
+        active && styles.smallRoleTextActive,
+      ]}
+    >
+      {label}
+    </Text>
+  </TouchableOpacity>
+);
+
 const styles = StyleSheet.create({
   title: {
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 12,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginTop: 8,
-    marginBottom: 4,
+  section: {
+    marginBottom: 16,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 6,
   },
   currentUserRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 8,
+    gap: 8,
   },
   currentUserChip: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#f3f4f6',
+  },
+  currentUserChipActive: {
+    backgroundColor: '#2563eb22',
+  },
+  currentUserText: {
+    fontSize: 13,
+  },
+  currentUserTextActive: {
+    color: '#2563eb',
+    fontWeight: '600',
+  },
+  currentUserInfo: {
+    marginTop: 6,
+    fontSize: 13,
+    opacity: 0.8,
+  },
+  languageRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  langButton: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#f9fafb',
   },
-  currentUserChipActive: {
-    backgroundColor: '#ddd',
+  langButtonActive: {
+    borderColor: '#2563eb',
+    backgroundColor: '#eff6ff',
   },
-  currentUserChipText: {
-    fontSize: 12,
+  langButtonText: {
+    fontSize: 13,
   },
-  langRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
+  langButtonTextActive: {
+    color: '#2563eb',
+    fontWeight: '600',
   },
   input: {
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+    backgroundColor: '#fff',
+    marginBottom: 8,
   },
-  roleRow: {
+  roleSelectRow: {
     flexDirection: 'row',
     gap: 8,
-    alignItems: 'center',
     marginBottom: 8,
-    flexWrap: 'wrap',
   },
-  roleButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  roleChip: {
     borderRadius: 999,
     borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#f9fafb',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  roleButtonActive: {
-    backgroundColor: '#ddd',
+  roleChipActive: {
+    borderColor: '#2563eb',
+    backgroundColor: '#eff6ff',
   },
-  roleButtonDisabled: {
-    opacity: 0.5,
+  roleChipText: {
+    fontSize: 13,
   },
-  roleButtonText: {
-    fontSize: 14,
+  roleChipTextActive: {
+    color: '#2563eb',
+    fontWeight: '600',
+  },
+  addButton: {
+    alignSelf: 'stretch',
+    borderRadius: 8,
+    paddingVertical: 10,
+    backgroundColor: '#2563eb',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   memberRow: {
     flexDirection: 'row',
@@ -290,58 +410,69 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#e5e7eb',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
   },
   avatarText: {
-    color: 'white',
-    fontWeight: '700',
+    fontWeight: '600',
   },
   memberName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
   },
   memberRoleText: {
     fontSize: 12,
     opacity: 0.7,
-    marginBottom: 4,
   },
-  memberRoleRow: {
+  memberRoleButtons: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 4,
+    marginRight: 4,
   },
-  rolePill: {
-    borderWidth: 1,
+  smallRoleButton: {
     borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  rolePillActive: {
-    backgroundColor: '#eee',
+  smallRoleButtonActive: {
+    borderColor: '#2563eb',
+    backgroundColor: '#eff6ff',
   },
-  rolePillDisabled: {
-    opacity: 0.5,
+  smallRoleText: {
+    fontSize: 11,
   },
-  rolePillText: {
-    fontSize: 12,
+  smallRoleTextActive: {
+    color: '#2563eb',
+    fontWeight: '600',
   },
-  remove: {
+  trash: {
     fontSize: 18,
     paddingHorizontal: 6,
   },
-  emptyText: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginTop: 8,
+  roleBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
   },
-  infoText: {
-    fontSize: 12,
-    opacity: 0.7,
-    marginBottom: 4,
+  roleBadgeText: {
+    fontSize: 11,
+    color: '#fff',
+  },
+  roleOwner: {
+    backgroundColor: '#1d4ed8',
+  },
+  roleAdmin: {
+    backgroundColor: '#16a34a',
+  },
+  roleMember: {
+    backgroundColor: '#6b7280',
   },
 });
 

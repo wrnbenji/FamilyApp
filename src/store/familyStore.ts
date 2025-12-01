@@ -2,79 +2,109 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { nanoid } from 'nanoid/non-secure';
 
 export type FamilyRole = 'owner' | 'admin' | 'member';
 
 export type FamilyMember = {
   id: string;
   name: string;
-  email?: string;
   role: FamilyRole;
 };
 
 type FamilyState = {
   members: FamilyMember[];
-  currentUserId: string | null;
+  currentUserId: string;
 
-  addMember: (name: string, email?: string) => void;
+  addMember: (name: string, role?: FamilyRole) => void;
   removeMember: (id: string) => void;
   setRole: (id: string, role: FamilyRole) => void;
+  setCurrentUser: (id: string) => void;
 };
 
-export const useFamilyStore = create<FamilyState>()(
-  persist<FamilyState>(
-    (set, get) => ({
-      // induláskor legyen egy owner (Te)
-      members: [
-        {
-          id: 'owner-1',
-          name: 'Te',
-          role: 'owner',
-        },
-      ],
-      currentUserId: 'owner-1',
+const initialMembers: FamilyMember[] = [
+  { id: 'owner-1', name: 'Owner', role: 'owner' },
+  { id: 'admin-1', name: 'Admin', role: 'admin' },
+  { id: 'user-1', name: 'User', role: 'member' },
+];
 
-      addMember: (name, email) => {
-        const newMember: FamilyMember = {
-          id: Date.now().toString(),
-          name,
-          email,
-          role: 'member',
-        };
+export const useFamilyStore = create<FamilyState>()(
+  persist(
+    (set, get) => ({
+      members: initialMembers,
+      currentUserId: initialMembers[0].id,
+
+      addMember: (name, role = 'member') => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+
         set((state) => ({
-          members: [...state.members, newMember],
+          members: [
+            ...state.members,
+            { id: nanoid(), name: trimmed, role },
+          ],
         }));
       },
 
       removeMember: (id) => {
-        const state = get();
-        const member = state.members.find((m) => m.id === id);
+        const { members, currentUserId } = get();
+
+        const member = members.find((m) => m.id === id);
         if (!member) return;
-        // ownert nem töröljük
-        if (member.role === 'owner') return;
+
+        // ne maradjon owner nélkül a család
+        if (member.role === 'owner') {
+          const otherOwners = members.filter(
+            (m) => m.role === 'owner' && m.id !== id
+          );
+          if (otherOwners.length === 0) {
+            return;
+          }
+        }
+
+        const newMembers = members.filter((m) => m.id !== id);
+
+        let newCurrentUserId = currentUserId;
+        if (currentUserId === id) {
+          newCurrentUserId = newMembers[0]?.id ?? '';
+        }
 
         set({
-          members: state.members.filter((m) => m.id !== id),
+          members: newMembers,
+          currentUserId: newCurrentUserId,
         });
       },
 
       setRole: (id, role) => {
-        const state = get();
-        const member = state.members.find((m) => m.id === id);
-        if (!member) return;
-        // owner szerepet nem veszünk el, és nem adunk oda másnak
-        if (member.role === 'owner' && role !== 'owner') return;
-        if (role === 'owner') return;
+        const { members } = get();
+        const target = members.find((m) => m.id === id);
+        if (!target) return;
 
-        set({
+        // owner-ről csak akkor váltsuk le, ha marad másik owner
+        if (target.role === 'owner' && role !== 'owner') {
+          const otherOwners = members.filter(
+            (m) => m.role === 'owner' && m.id !== id
+          );
+          if (otherOwners.length === 0) {
+            return;
+          }
+        }
+
+        set((state) => ({
           members: state.members.map((m) =>
             m.id === id ? { ...m, role } : m
           ),
-        });
+        }));
+      },
+
+      setCurrentUser: (id) => {
+        const { members } = get();
+        if (!members.find((m) => m.id === id)) return;
+        set({ currentUserId: id });
       },
     }),
     {
-      name: 'familyapp-family',
+      name: 'family-storage',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

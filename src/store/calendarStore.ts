@@ -1,19 +1,21 @@
-// src/store/calendarStore.ts
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { nanoid } from 'nanoid';
 
+// 🔹 prioritás típusok
 export type EventPriority = 'low' | 'medium' | 'high';
 
+// 🔹 naptár esemény típus
 export type CalendarEvent = {
   id: string;
   title: string;
-  date: string;        // 'YYYY-MM-DD'
-  time?: string;       // pl. '08:30'
+  /** Dátum formátum: 'YYYY-MM-DD' */
+  date: string;
+  /** Idő vagy időtartam: '08:00' vagy '08:00-09:00' */
+  time?: string;
   priority: EventPriority;
-  color?: string;      // később használhatjuk (pl. family member szín)
 };
 
+// 🔹 store állapot
 type CalendarState = {
   events: CalendarEvent[];
   addEvent: (
@@ -23,35 +25,35 @@ type CalendarState = {
     priority?: EventPriority
   ) => void;
   removeEvent: (id: string) => void;
+  clearAll: () => void;
 };
 
-export const useCalendarStore = create<CalendarState>()(
-  persist<CalendarState>(
-    (set) => ({
-      events: [],
+export const useCalendarStore = create<CalendarState>((set) => ({
+  events: [],
 
-      addEvent: (title, date, time, priority = 'medium') =>
-        set((state) => ({
-          events: [
-            ...state.events,
-            {
-              id: Date.now().toString(),
-              title,
-              date,
-              time,
-              priority,
-            },
-          ],
-        })),
+  addEvent: (
+    title: string,
+    date: string,
+    time?: string,
+    priority: EventPriority = 'medium'
+  ) =>
+    set((state) => ({
+      events: [
+        ...state.events,
+        {
+          id: nanoid(),
+          title,
+          date,
+          time,
+          priority,
+        },
+      ],
+    })),
 
-      removeEvent: (id) =>
-        set((state) => ({
-          events: state.events.filter((e) => e.id !== id),
-        })),
-    }),
-    {
-      name: 'familyapp-calendar',
-      storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
-);
+  removeEvent: (id: string) =>
+    set((state) => ({
+      events: state.events.filter((e) => e.id !== id),
+    })),
+
+  clearAll: () => set({ events: [] }),
+}));

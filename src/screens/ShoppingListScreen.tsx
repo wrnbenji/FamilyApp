@@ -3,47 +3,54 @@ import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  Button,
-  FlatList,
-  TouchableOpacity,
   StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
   Platform,
-  ScrollView,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import ScreenContainer from '../components/common/ScreenContainer';
-import { useShoppingStore } from '../store/shoppingStore';
+import { useShoppingStore, ShoppingList } from '../store/shoppingStore';
 
-type Filter = 'all' | 'open' | 'done';
+type Filter = 'all' | 'active' | 'done';
 
 const ShoppingListScreen = () => {
   const { t } = useTranslation();
   const { lists, addList, removeList, addItem, toggleItem, removeItem, clearList } =
     useShoppingStore();
 
-  const isWeb = Platform.OS === 'web';
+  // aktív lista
+  const [activeListId, setActiveListId] = useState<string>(
+    lists[0]?.id ?? 'default'
+  );
 
-  const [activeListId, setActiveListId] = useState<string>('default');
-  const [itemName, setItemName] = useState('');
-  const [itemQuantity, setItemQuantity] = useState('');
   const [newListName, setNewListName] = useState('');
+  const [itemName, setItemName] = useState('');
+  const [itemQty, setItemQty] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
 
-  const activeList = useMemo(() => {
-    if (!lists.length) return undefined;
-    const found = lists.find((l) => l.id === activeListId);
-    return found ?? lists[0];
-  }, [lists, activeListId]);
+  const activeList: ShoppingList | undefined = useMemo(
+    () => lists.find((l) => l.id === activeListId) ?? lists[0],
+    [lists, activeListId]
+  );
 
-  const handleAddItem = () => {
-    if (!activeList) return;
-    if (!itemName.trim()) return;
-    addItem(activeList.id, itemName.trim(), itemQuantity.trim() || undefined);
-    setItemName('');
-    setItemQuantity('');
-  };
+  const items = activeList?.items ?? [];
+
+  const filteredItems = useMemo(() => {
+    switch (filter) {
+      case 'active':
+        return items.filter((i) => !i.done);
+      case 'done':
+        return items.filter((i) => i.done);
+      default:
+        return items;
+    }
+  }, [items, filter]);
+
+  const activeCount = items.filter((i) => !i.done).length;
+  const doneCount = items.filter((i) => i.done).length;
 
   const handleAddList = () => {
     if (!newListName.trim()) return;
@@ -51,373 +58,422 @@ const ShoppingListScreen = () => {
     setNewListName('');
   };
 
-  const handleRemoveList = (id: string) => {
-    // ne engedd törölni az alap 'default' listát
-    if (id === 'default') return;
-    removeList(id);
-    if (activeListId === id) {
-      // ha az aktívat töröltük, álljunk át az elsőre, ha van
-      if (lists.length > 1) {
-        const next = lists.find((l) => l.id !== id);
-        if (next) setActiveListId(next.id);
-      } else {
-        setActiveListId('default');
-      }
-    }
+  const handleAddItem = () => {
+    if (!activeList) return;
+    if (!itemName.trim()) return;
+    addItem(activeList.id, itemName.trim(), itemQty.trim() || undefined);
+    setItemName('');
+    setItemQty('');
   };
 
-  const filteredItems = useMemo(() => {
-    if (!activeList) return [];
-    return activeList.items.filter((item) => {
-      if (filter === 'open') return !item.done;
-      if (filter === 'done') return item.done;
-      return true;
-    });
-  }, [activeList, filter]);
+  const handleClearDone = () => {
+    if (!activeList) return;
+    if (!doneCount) return;
+    // csak done elemeket töröljük – simán filterrel:
+    activeList.items
+      .filter((i) => i.done)
+      .forEach((i) => {
+        removeItem(activeList.id, i.id);
+      });
+  };
 
-  const activeListName = activeList?.name ?? 'Lista';
+  const handleClearAll = () => {
+    if (!activeList) return;
+    clearList(activeList.id);
+  };
+
+  // weben oldalhasáb, mobilon csak a felső csippek
+  const isWeb = Platform.OS === 'web';
 
   return (
     <ScreenContainer>
-      <Text style={styles.title}>{t('nav.shopping') || 'Bevásárlólista'}</Text>
+      <Text style={styles.title}>{t('shopping.title') || 'Bevásárlólista'}</Text>
 
-      <View style={isWeb ? styles.webLayout : styles.mobileLayout}>
-        {/* LISTA-VÁLASZTÓ – bal oldal weben, felül mobilon */}
-        <View style={isWeb ? styles.listsSidebar : styles.listsTopBar}>
-          <Text style={styles.listsHeader}>Listák</Text>
+      <View style={styles.rootRow}>
+        {/* Web sidebar lists */}
+        {isWeb && (
+          <View style={styles.sidebar}>
+            <Text style={styles.sidebarTitle}>{t('shopping.list') || 'Listák'}</Text>
 
-          {isWeb ? (
-            // web: oszlopban a listák
             <FlatList
               data={lists}
               keyExtractor={(l) => l.id}
+              contentContainerStyle={{ paddingVertical: 4 }}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  onPress={() => setActiveListId(item.id)}
                   style={[
-                    styles.listRow,
-                    activeList?.id === item.id && styles.listRowActive,
+                    styles.listChip,
+                    item.id === activeList?.id && styles.listChipActive,
                   ]}
-                >
-                  <View>
-                    <Text
-                      style={[
-                        styles.listName,
-                        activeList?.id === item.id && styles.listNameActive,
-                      ]}
-                    >
-                      {item.name}
-                    </Text>
-                    <Text style={styles.listSub}>
-                      {item.items.length} tétel
-                    </Text>
-                  </View>
-                  {item.id !== 'default' && (
-                    <TouchableOpacity
-                      onPress={() => handleRemoveList(item.id)}
-                    >
-                      <Text style={styles.listRemove}>🗑</Text>
-                    </TouchableOpacity>
-                  )}
-                </TouchableOpacity>
-              )}
-            />
-          ) : (
-            // mobil: vízszintes pillek
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.listsPillsRow}
-            >
-              {lists.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
                   onPress={() => setActiveListId(item.id)}
-                  style={[
-                    styles.listPill,
-                    activeList?.id === item.id && styles.listPillActive,
-                  ]}
                 >
                   <Text
                     style={[
-                      styles.listPillText,
-                      activeList?.id === item.id && styles.listPillTextActive,
+                      styles.listChipText,
+                      item.id === activeList?.id && styles.listChipTextActive,
                     ]}
                   >
                     {item.name}
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              )}
+            />
+
+            <View style={styles.newListBox}>
+              <TextInput
+                style={styles.input}
+                value={newListName}
+                onChangeText={setNewListName}
+                placeholder={t('shopping.new') || 'Új lista neve'}
+              />
+              <TouchableOpacity style={styles.addListButton} onPress={handleAddList}>
+                <Text style={styles.addListButtonText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Main content */}
+        <View style={styles.main}>
+          {/* Mobil listaváltó chippek */}
+          {!isWeb && (
+            <FlatList
+              data={lists}
+              keyExtractor={(l) => l.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingVertical: 4 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.listChip,
+                    item.id === activeList?.id && styles.listChipActive,
+                    { marginRight: 6 },
+                  ]}
+                  onPress={() => setActiveListId(item.id)}
+                >
+                  <Text
+                    style={[
+                      styles.listChipText,
+                      item.id === activeList?.id && styles.listChipTextActive,
+                    ]}
+                  >
+                    {item.name}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
           )}
 
-          {/* Új lista hozzáadása */}
-          <View style={styles.newListBox}>
-            <TextInput
-              style={styles.input}
-              placeholder="Új lista neve..."
-              value={newListName}
-              onChangeText={setNewListName}
-            />
-            <Button title="Új lista" onPress={handleAddList} />
-          </View>
-        </View>
-
-        {/* AKTÍV LISTA TARTALMA – jobb oldal weben, alatta mobilon */}
-        <View style={styles.itemsContainer}>
-          <Text style={styles.activeListTitle}>{activeListName}</Text>
+          {/* Aktív lista fejlec */}
+          {activeList && (
+            <View style={styles.listHeader}>
+              <Text style={styles.listTitle}>{activeList.name}</Text>
+              <Text style={styles.listSubTitle}>
+                {activeCount} aktív • {doneCount} kész
+              </Text>
+            </View>
+          )}
 
           {/* Új tétel hozzáadása */}
-          <View style={styles.itemInputRow}>
+          <View style={styles.addRow}>
             <TextInput
               style={[styles.input, { flex: 2 }]}
-              placeholder="Mit vegyünk?"
+              placeholder={t('shopping.new') || 'Új tétel'}
               value={itemName}
               onChangeText={setItemName}
             />
             <TextInput
-              style={[styles.input, { flex: 1 }]}
+              style={[styles.input, { flex: 1, marginLeft: 8 }]}
               placeholder="Mennyiség"
-              value={itemQuantity}
-              onChangeText={setItemQuantity}
+              value={itemQty}
+              onChangeText={setItemQty}
             />
-            <Button title="+" onPress={handleAddItem} />
+            <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
+              <Text style={styles.addButtonText}>+</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Szűrők */}
           <View style={styles.filterRow}>
-            <TouchableOpacity
-              style={[
-                styles.filterPill,
-                filter === 'all' && styles.filterPillActive,
-              ]}
+            <FilterChip
+              label={t('todos.filter.all') || 'Mind'}
+              active={filter === 'all'}
               onPress={() => setFilter('all')}
-            >
-              <Text>Mind</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterPill,
-                filter === 'open' && styles.filterPillActive,
-              ]}
-              onPress={() => setFilter('open')}
-            >
-              <Text>Nyitott</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterPill,
-                filter === 'done' && styles.filterPillActive,
-              ]}
+            />
+            <FilterChip
+              label={t('todos.filter.active') || 'Aktív'}
+              active={filter === 'active'}
+              onPress={() => setFilter('active')}
+            />
+            <FilterChip
+              label={t('todos.filter.done') || 'Kész'}
+              active={filter === 'done'}
               onPress={() => setFilter('done')}
-            >
-              <Text>Megvett</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Lista műveletek */}
-          <View style={styles.actionsRow}>
-            <Button
-              title="Lista ürítése"
-              onPress={() => activeList && clearList(activeList.id)}
             />
           </View>
 
-          {/* TÉTELEK LISTÁJA */}
-          <FlatList
-            data={filteredItems}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingVertical: 8 }}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>
-                {filter === 'done'
-                  ? 'Még semmi sincs megvéve.'
-                  : 'Még nincs tétel ebben a listában.'}
-              </Text>
-            }
-            renderItem={({ item }) => (
-              <View style={styles.row}>
-                <TouchableOpacity
-                  onPress={() => activeList && toggleItem(activeList.id, item.id)}
-                >
-                  <Text
+          {/* Lista elemek */}
+          {filteredItems.length === 0 ? (
+            <Text style={styles.emptyText}>
+              {t('shopping.empty') || 'Nincs tétel.'}
+            </Text>
+          ) : (
+            <FlatList
+              data={filteredItems}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ paddingVertical: 8 }}
+              renderItem={({ item }) => (
+                <View style={styles.itemRow}>
+                  <TouchableOpacity
                     style={[
                       styles.checkbox,
                       item.done && styles.checkboxDone,
                     ]}
+                    onPress={() => activeList && toggleItem(activeList.id, item.id)}
                   >
-                    {item.done ? '✓' : '○'}
-                  </Text>
-                </TouchableOpacity>
+                    {item.done && <Text style={styles.checkboxTick}>✓</Text>}
+                  </TouchableOpacity>
 
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={[
-                      styles.itemTitle,
-                      item.done && styles.itemTitleDone,
-                    ]}
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.itemName,
+                        item.done && styles.itemNameDone,
+                      ]}
+                    >
+                      {item.name}
+                    </Text>
+                    {item.quantity ? (
+                      <Text style={styles.itemQuantity}>{item.quantity}</Text>
+                    ) : null}
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => activeList && removeItem(activeList.id, item.id)}
                   >
-                    {item.name}
-                  </Text>
-                  {item.quantity ? (
-                    <Text style={styles.itemQuantity}>{item.quantity}</Text>
-                  ) : null}
+                    <Text style={styles.removeButtonText}>🗑️</Text>
+                  </TouchableOpacity>
                 </View>
+              )}
+            />
+          )}
 
-                <TouchableOpacity
-                  onPress={() =>
-                    activeList && removeItem(activeList.id, item.id)
-                  }
-                >
-                  <Text style={styles.remove}>🗑</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          />
+          {/* Akció gombok */}
+          <View style={styles.footerActions}>
+            <TouchableOpacity
+              style={[styles.footerButton, doneCount === 0 && styles.footerButtonDisabled]}
+              onPress={handleClearDone}
+              disabled={doneCount === 0}
+            >
+              <Text
+                style={[
+                  styles.footerButtonText,
+                  doneCount === 0 && styles.footerButtonTextDisabled,
+                ]}
+              >
+                Csak kész tételek törlése
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.footerButton,
+                items.length === 0 && styles.footerButtonDisabled,
+              ]}
+              onPress={handleClearAll}
+              disabled={items.length === 0}
+            >
+              <Text
+                style={[
+                  styles.footerButtonText,
+                  items.length === 0 && styles.footerButtonTextDisabled,
+                ]}
+              >
+                Teljes lista ürítése
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </ScreenContainer>
   );
 };
 
+type ChipProps = {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+};
+
+const FilterChip = ({ label, active, onPress }: ChipProps) => (
+  <TouchableOpacity
+    style={[styles.chip, active && styles.chipActive]}
+    onPress={onPress}
+  >
+    <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+  </TouchableOpacity>
+);
+
 const styles = StyleSheet.create({
   title: {
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 12,
   },
-  webLayout: {
-    flex: 1,
+  rootRow: {
     flexDirection: 'row',
-    gap: 12,
-  },
-  mobileLayout: {
     flex: 1,
   },
-  listsSidebar: {
+  sidebar: {
     width: 220,
-  },
-  listsTopBar: {
-    marginBottom: 12,
-  },
-  listsHeader: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  listRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    marginBottom: 4,
-  },
-  listRowActive: {
-    backgroundColor: '#eff6ff',
-  },
-  listName: {
-    fontSize: 14,
-  },
-  listNameActive: {
-    fontWeight: '600',
-    color: '#1d4ed8',
-  },
-  listSub: {
-    fontSize: 11,
-    opacity: 0.7,
-  },
-  listRemove: {
-    fontSize: 16,
-    paddingHorizontal: 4,
-  },
-  listsPillsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 4,
-  },
-  listPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
+    marginRight: 12,
+    borderRightWidth: StyleSheet.hairlineWidth,
     borderColor: '#e5e7eb',
-    backgroundColor: '#f9fafb',
+    paddingRight: 8,
   },
-  listPillActive: {
-    backgroundColor: '#e0f2fe',
-    borderColor: '#38bdf8',
-  },
-  listPillText: {
+  sidebarTitle: {
     fontSize: 14,
-  },
-  listPillTextActive: {
     fontWeight: '600',
-    color: '#1d4ed8',
+    marginBottom: 6,
   },
   newListBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 8,
-    gap: 4,
   },
-  itemsContainer: {
+  addListButton: {
+    marginLeft: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#2563eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addListButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: -2,
+  },
+  listChip: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#f3f4f6',
+    marginBottom: 4,
+  },
+  listChipActive: {
+    backgroundColor: '#2563eb22',
+  },
+  listChipText: {
+    fontSize: 13,
+  },
+  listChipTextActive: {
+    color: '#2563eb',
+    fontWeight: '600',
+  },
+  main: {
     flex: 1,
   },
-  activeListTitle: {
+  listHeader: {
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  listTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 8,
   },
-  itemInputRow: {
+  listSubTitle: {
+    fontSize: 12,
+    opacity: 0.7,
+  },
+  addRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
     alignItems: 'center',
+    marginBottom: 8,
+    marginTop: 4,
   },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: '#ffffff',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+    backgroundColor: '#fff',
+  },
+  addButton: {
+    marginLeft: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#22c55e',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
+    marginTop: -2,
   },
   filterRow: {
     flexDirection: 'row',
     gap: 8,
     marginBottom: 8,
   },
-  filterPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  chip: {
     borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: '#e5e7eb',
     backgroundColor: '#f9fafb',
   },
-  filterPillActive: {
-    backgroundColor: '#e0f2fe',
-    borderColor: '#38bdf8',
+  chipActive: {
+    borderColor: '#2563eb',
+    backgroundColor: '#eff6ff',
   },
-  actionsRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-    alignItems: 'center',
+  chipText: {
+    fontSize: 13,
   },
-  row: {
+  chipTextActive: {
+    color: '#2563eb',
+    fontWeight: '600',
+  },
+  emptyText: {
+    marginTop: 12,
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 6,
   },
   checkbox: {
-    fontSize: 20,
-    width: 28,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
   },
   checkboxDone: {
-    color: 'green',
+    backgroundColor: '#22c55e33',
+    borderColor: '#22c55e',
   },
-  itemTitle: {
+  checkboxTick: {
     fontSize: 16,
   },
-  itemTitleDone: {
+  itemName: {
+    fontSize: 15,
+  },
+  itemNameDone: {
     textDecorationLine: 'line-through',
     opacity: 0.6,
   },
@@ -425,15 +481,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.7,
   },
-  emptyText: {
-    marginTop: 12,
-    fontSize: 14,
-    opacity: 0.7,
-  },
-  remove: {
-    fontSize: 18,
+  removeButton: {
     paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  removeButtonText: {
+    fontSize: 16,
+  },
+  footerActions: {
+    marginTop: 8,
+    gap: 4,
+  },
+  footerButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#fee2e2',
+  },
+  footerButtonDisabled: {
+    backgroundColor: '#f3f4f6',
+  },
+  footerButtonText: {
+    fontSize: 12,
+    color: '#b91c1c',
+    fontWeight: '500',
+  },
+  footerButtonTextDisabled: {
+    color: '#9ca3af',
   },
 });
-
 export default ShoppingListScreen;

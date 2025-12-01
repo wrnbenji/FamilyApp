@@ -1,56 +1,69 @@
-// src/store/todoStore.ts
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { persist } from 'zustand/middleware';
+import { nanoid } from 'nanoid';
 
-export type Priority = 'low' | 'medium' | 'high' | 'urgent';
+export type TodoPriority = 'low' | 'medium' | 'high';
 
-export type Todo = {
+export interface Todo {
   id: string;
-  title: string;
+  title: string;     // <- FONTOS: a projekted mindenhol title-t használ
+  priority: TodoPriority;
   done: boolean;
-  priority: Priority;
-};
+  createdAt: string;
+}
 
-type TodoState = {
+interface TodoState {
   todos: Todo[];
-  addTodo: (title: string, priority?: Priority) => void;
+  addTodo: (title: string, priority: TodoPriority) => void;
   toggleTodo: (id: string) => void;
-  removeTodo: (id: string) => void;
+  deleteTodo: (id: string) => void;
+  clearCompleted: () => void;
   clearAll: () => void;
-};
+}
 
 export const useTodoStore = create<TodoState>()(
-  persist<TodoState>(
+  persist(
     (set) => ({
       todos: [],
-      addTodo: (title, priority = 'medium') =>
+
+      addTodo: (title, priority) =>
         set((state) => ({
           todos: [
-            ...state.todos,
             {
-              id: Date.now().toString(),
+              id: nanoid(),
               title,
               priority,
               done: false,
+              createdAt: new Date().toISOString(),
             },
+            ...state.todos,
           ],
         })),
+
       toggleTodo: (id) =>
         set((state) => ({
           todos: state.todos.map((t) =>
             t.id === id ? { ...t, done: !t.done } : t
           ),
         })),
-      removeTodo: (id) =>
+
+      deleteTodo: (id) =>
         set((state) => ({
           todos: state.todos.filter((t) => t.id !== id),
         })),
-      clearAll: () => set({ todos: [] }),
+
+      clearCompleted: () =>
+        set((state) => ({
+          todos: state.todos.filter((t) => !t.done),
+        })),
+
+      clearAll: () =>
+        set(() => ({
+          todos: [],
+        })),
     }),
     {
-      name: 'familyapp-todos',
-      storage: createJSONStorage(() => AsyncStorage),
+      name: 'todo-store',
     }
   )
 );
