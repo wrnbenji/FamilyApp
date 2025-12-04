@@ -1,69 +1,84 @@
+// src/store/todoStore.ts
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
+import { saveToStorage, loadFromStorage } from '../utils/storage';
 
 export type TodoPriority = 'low' | 'medium' | 'high';
 
-export interface Todo {
+export type Todo = {
   id: string;
-  title: string;     // <- FONTOS: a projekted mindenhol title-t használ
-  priority: TodoPriority;
+  title: string;
   done: boolean;
-  createdAt: string;
-}
+  priority: TodoPriority;
+};
 
-interface TodoState {
+type TodoState = {
   todos: Todo[];
-  addTodo: (title: string, priority: TodoPriority) => void;
+  isHydrated: boolean; // jelez, hogy betöltöttük-e már storage-ból
+  addTodo: (title: string, priority?: TodoPriority) => void;
   toggleTodo: (id: string) => void;
   deleteTodo: (id: string) => void;
-  clearCompleted: () => void;
   clearAll: () => void;
-}
+  setPriority: (id: string, priority: TodoPriority) => void;
+  hydrate: () => Promise<void>;
+};
 
-export const useTodoStore = create<TodoState>()(
-  persist(
-    (set) => ({
-      todos: [],
+const STORAGE_KEY = 'familyapp_todos';
 
-      addTodo: (title, priority) =>
-        set((state) => ({
-          todos: [
-            {
-              id: nanoid(),
-              title,
-              priority,
-              done: false,
-              createdAt: new Date().toISOString(),
-            },
-            ...state.todos,
-          ],
-        })),
+export const useTodoStore = create<TodoState>((set, get) => ({
+  todos: [],
+  isHydrated: false,
 
-      toggleTodo: (id) =>
-        set((state) => ({
-          todos: state.todos.map((t) =>
-            t.id === id ? { ...t, done: !t.done } : t
-          ),
-        })),
+  // 🔹 storage betöltése
+  hydrate: async () => {
+    if (get().isHydrated) return;
+    const stored = await loadFromStorage<Todo[]>(STORAGE_KEY, []);
+    set({ todos: stored, isHydrated: true });
+  },
 
-      deleteTodo: (id) =>
-        set((state) => ({
-          todos: state.todos.filter((t) => t.id !== id),
-        })),
+  addTodo: (title, priority = 'medium') => {
+    const newTodo: Todo = {
+      id: nanoid(),
+      title: title.trim(),
+      done: false,
+      priority,
+    };
+    set((state) => {
+      const updated = [...state.todos, newTodo];
+      // mentés storage-ba
+      saveToStorage(STORAGE_KEY, updated);
+      return { todos: updated };
+    });
+  },
 
-      clearCompleted: () =>
-        set((state) => ({
-          todos: state.todos.filter((t) => !t.done),
-        })),
-
-      clearAll: () =>
-        set(() => ({
-          todos: [],
-        })),
+  toggleTodo: (id) =>
+    set((state) => {
+      const updated = state.todos.map((t) =>
+        t.id === id ? { ...t, done: !t.done } : t
+      );
+      saveToStorage(STORAGE_KEY, updated);
+      return { todos: updated };
     }),
-    {
-      name: 'todo-store',
-    }
-  )
-);
+
+  deleteTodo: (id) =>
+    set((state) => {
+      const updated = state.todos.filter((t) => t.id !== id);
+      saveToStorage(STORAGE_KEY, updated);
+      return { todos: updated };
+    }),
+
+  clearAll: () =>
+    set(() => {
+      saveToStorage(STORAGE_KEY, []);
+      return { todos: [] };
+    }),
+
+  setPriority: (id, priority) =>
+    set((state) => {
+      const updated = state.todos.map((t) =>
+        t.id === id ? { ...t, priority } : t
+      );
+      saveToStorage(STORAGE_KEY, updated);
+      return { todos: updated };
+    }),
+}));
